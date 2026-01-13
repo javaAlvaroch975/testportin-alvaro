@@ -166,30 +166,22 @@
         </div>
 
         <div class="card">
-          <label>Create</label>
-          <div class="muted">Crear una temporada con la descripción indicada.</div>
-          <div style="margin-top: 8px" class="row">
-            <input id="createDescripcion" placeholder="Descripción" value="Prueba API" />
-            <button id="btnCreate">Create</button>
+          <label>Create → Update → Delete</label>
+          <div class="muted">
+            Crea una temporada (solo descripción), la actualiza y luego la borra.
           </div>
-        </div>
-
-            <div class="card">
-              <label>Update</label>
-              <div class="muted">Actualizar descripcion: indicar id y nueva descripción.</div>
-              <div style="margin-top:8px" class="row">
-                <input id="updateId" type="number" placeholder="id a actualizar" />
-                <input id="updateDescripcion" placeholder="Nueva descripción" />
-                <button id="btnUpdate">Update</button>
-              </div>
-            </div>
-
-        <div class="card">
-          <label>Delete</label>
-          <div class="muted">Borrar la temporada con el id indicado.</div>
-          <div style="margin-top: 8px" class="row">
-            <input id="deleteId" type="number" placeholder="id a borrar" />
-            <button id="btnDelete" class="secondary">Delete</button>
+          <div style="margin-top: 8px">
+            <label for="createDescripcion">Descripción</label>
+            <input
+              id="createDescripcion"
+              placeholder="Descripción inicial"
+              value="Prueba API"
+            />
+          </div>
+          <div style="margin-top: 8px">
+            <button id="btnCreateUpdateDelete">
+              Ejecutar proceso completo
+            </button>
           </div>
         </div>
       </div>
@@ -200,9 +192,9 @@
       </section>
 
       <p class="muted" style="margin-top: 12px">
-        Notas: Asume que el backend está disponible en la misma origen bajo
-        <code>/temporada</code>. La tabla solo contiene los campos
-        <code>id</code> y <code>descripcion</code>.
+  Notas: Asume que el backend está disponible en la misma origen bajo
+  <code>/temporada</code>. Para <strong>create</strong> solo se envía el
+  campo <code>descripcion</code>. El <code>id</code> se genera en el backend.
       </p>
     </div>
 
@@ -348,58 +340,65 @@
           }
         });
 
-        //Create
-        document.getElementById("btnCreate").addEventListener("click", async () => {
-        const descripcion = document.getElementById("createDescripcion").value || "Prueba API";
-        //es necesario asignar un id 0 temporal porque no se puede enviar null
-        const payload = {
-            id: 0,               
-            descripcion
-        };
-        log("Creating temporada");
-        try {
-            const createdId = await api("", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
+        document
+        .getElementById("btnCreateUpdateDelete")
+        .addEventListener("click", async () => {
+          try {
+            // Crear
+            const descripcion =
+              document.getElementById("createDescripcion").value ||
+              "Prueba API";
+            log("Iniciando CREATE temporada...");
+            const createPayload = { descripcion };
+            const created = await api("", {
+              method: "POST",
+              body: JSON.stringify(createPayload),
             });
+            log("CREATE result:", created);
+            // El backend puede devolver el id directamente (número) o un objeto con { id }
+            const newId = created && typeof created === "object" ? created.id : created;
+            if (newId == null) {
+              log("FALLO: create no devolvió id");
+              return;
+            }
+            log("OK: creado id=" + newId);
 
-            log("CREATE OK, new ID:", createdId);
+            // Update: cambiar descripcion
+            const updatedPayload = { id: newId, descripcion: descripcion + " - UPDATED" };
+            log("Executing UPDATE for id=" + newId);
+            const updated = await api("", {
+              method: "PUT",
+              body: JSON.stringify(updatedPayload),
+            });
+            log("UPDATE result:", updated);
 
-        } catch (err) {
-            log("Error en CREATE:", err);
-        }
+            // Comprobar que el campo ha cambiado
+            const after = await api("/" + newId, { method: "GET" });
+            log("GET after update:", after);
+            if (after.descripcion === updatedPayload.descripcion) {
+              log("OK: descripcion actualizada correctamente");
+            } else {
+              log("FALLO: descripcion no actualizada");
+            }
+
+            // Delete
+            log("Deleting id=" + newId);
+            const del = await api("/" + newId, { method: "DELETE" });
+            log("DELETE result:", del);
+            // Comprobar no existe
+            try {
+              await api("/" + newId, { method: "GET" });
+              log("FALLO: registro aun existe despues de delete");
+            } catch (err) {
+              if (err && err.status === 404)
+                log("OK: registro eliminado y GET devuelve 404");
+              else
+                log("OK (o fallo no 404): respuesta al comprobar delete:", err);
+            }
+          } catch (e) {
+            log("Error en proceso Create/Update/Delete:", e);
+          }
         });
-
-
-          // Update: backend expects PUT to root with the entity in body
-          document.getElementById('btnUpdate').addEventListener('click', async () => {
-            const id = Number(document.getElementById('updateId').value);
-            const descripcion = document.getElementById('updateDescripcion').value || '';
-            if((!id && id !== 0) || !descripcion){ log('Introduce id válido y nueva descripción'); return }
-            const payload = { id, descripcion };
-            log('Updating id=' + id + ' descripcion=' + descripcion);
-            log('Request body:', JSON.stringify(payload));
-            try{ const updated = await api('', { method: 'PUT', body: JSON.stringify(payload) }); log('UPDATE result:', updated) }catch(err){ if(err && typeof err === 'object') log('Error en UPDATE: status=', err.status, 'body=', err.body); else log('Error en UPDATE:', err) }
-          });
-
-    // Delete
-      document.getElementById("btnDelete").addEventListener("click", async () => {
-        const id = Number(document.getElementById("deleteId").value);
-        if (!id && id !== 0) {
-          log("Introduce id válido a borrar");
-          return;
-        }
-        log("Deleting id=" + id);
-        try {
-          const del = await api("/" + id, { method: "DELETE" });
-          log("DELETE result:", del);
-        } catch (err) {
-          log("Error en DELETE:", err);
-        }
-      });
     </script>
   </body>
 </html>
