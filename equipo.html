@@ -174,23 +174,19 @@
           </div>
           <div style="margin-top: 8px" class="row">
             <input
-              id="createDescripcion"
+              id="createNombre"
               placeholder="Descripción inicial"
-              value="Prueba API"
+              value="Prueba Equipo1"
             />
           </div>
           <div style="margin-top: 8px" class="row">
-            <input id="createPrecio" type="number" step="0.01" value="10.00" />
-            <input
-              id="createDescuento"
-              type="number"
-              step="0.01"
-              value="0.00"
-            />
           </div>
           <div style="margin-top: 8px" class="row">
-            <input id="createIdTipo" type="number" value="1" />
             <input id="createIdClub" type="number" value="1" />
+            <input id="createIdEntrenador" type="number" value="1" />
+            <input id="createIdCategoria" type="number" value="1" />
+            <input id="createIdLiga" type="number" value="1" />
+            <input id="createIdTemporada" type="number" value="1" />
           </div>
           <div style="margin-top: 8px">
             <button id="btnCreateUpdateDelete">
@@ -358,31 +354,22 @@
         .addEventListener("click", async () => {
           try {
             // Crear
-            const nombre =
-              document.getElementById("createNombre").value ||
-              "Prueba API";
-            const idEntrenador =
-              Number(document.getElementById("createIdEntrenador").value) || 0;
-            const idLiga =
-              Number(document.getElementById("createIdLiga").value) || 0;
-            const idcategoria =
-              Number(document.getElementById("createIdTipo").value) || 1;
-            const idClub =
-              Number(document.getElementById("createIdClub").value) || 1;
-            const idTemporada =
-              Number(document.getElementById("createIdTemporada").value) || 0;
+            const nombre = document.getElementById("createNombre").value || "Prueba Equipo1";
+            const idClub = Number(document.getElementById("createIdClub").value) || 1;
+            const idEntrenador = Number(document.getElementById("createIdEntrenador").value) || 1;
+            const idCategoria = Number(document.getElementById("createIdCategoria").value) || 1;
+            const idLiga = Number(document.getElementById("createIdLiga").value) || 1;
+            const idTemporada = Number(document.getElementById("createIdTemporada").value) || 0;
             log(
-              "Iniciando CREATE con idCategoria=" +
-                idcategoria +
-                " idClub=" +
+              "Iniciando CREATE con idClub=" +
                 idClub
             );
             const createPayload = {
-              descripcion,
-              idEntrenador,
-              idLiga,
-              idcategoria,
+              nombre,
               idClub,
+              idEntrenador,
+              idCategoria,
+              idLiga,
               idTemporada,
             };
             const created = await api("", {
@@ -399,9 +386,9 @@
 
             // Update: cambiar campos no FK
             const updatedPayload = Object.assign({}, created, {
-              descripcion: descripcion + " - UPDATED",
-              precio: (Number(precio) + 1).toFixed(2),
-              descuento: Number(descuento) + 0.5,
+              nombre: nombre + " - UPDATED",
+              idClub: (Number(idClub) + 1),
+              idTemporada: Number(idTemporada) + 1,
             });
             log("Executing UPDATE for id=" + newId);
             const updated = await api("", {
@@ -414,23 +401,23 @@
             const after = await api("/" + newId, { method: "GET" });
             log("GET after update:", after);
             let okUpdate = true;
-            if (after.descripcion !== updatedPayload.descripcion) {
+            if (after.nombre !== updatedPayload.nombre) {
               okUpdate = false;
-              log("FALLO: descripcion no actualizada");
+              log("FALLO: nombre no actualizada");
             }
-            if (Number(after.precio) !== Number(updatedPayload.precio)) {
+            if (Number(after.idClub) !== Number(updatedPayload.idClub)) {
               okUpdate = false;
               log(
-                "FALLO: precio no actualizado (esperado " +
-                  updatedPayload.precio +
+                "FALLO: idClub no actualizado (esperado " +
+                  updatedPayload.idClub +
                   " recibido " +
-                  after.precio +
+                  after.idClub +
                   ")"
               );
             }
-            if (Number(after.descuento) !== Number(updatedPayload.descuento)) {
+            if (Number(after.idTemporada) !== Number(updatedPayload.idTemporada)) {
               okUpdate = false;
-              log("FALLO: descuento no actualizado");
+              log("FALLO: idTemporada no actualizado");
             }
             if (okUpdate) log("OK: campos no FK actualizados correctamente");
 
